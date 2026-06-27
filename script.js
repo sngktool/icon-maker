@@ -213,6 +213,62 @@ canvas.addEventListener("touchend", () => {
 });
 
 // ================================
+// ▼ PC: Drag move
+// ================================
+canvas.addEventListener("mousedown", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  isDragging = true;
+  lastX = e.clientX - rect.left;
+  lastY = e.clientY - rect.top;
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!isDragging) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  offsetX += x - lastX;
+  offsetY += y - lastY;
+
+  lastX = x;
+  lastY = y;
+
+  redraw();
+});
+
+canvas.addEventListener("mouseup", () => {
+  isDragging = false;
+});
+
+canvas.addEventListener("mouseleave", () => {
+  isDragging = false;
+});
+
+// ================================
+// ▼ PC: Wheel zoom
+// ================================
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  const oldScale = scale;
+  const delta = e.deltaY > 0 ? -0.05 : 0.05;
+
+  scale = Math.max(minScale, Math.min(maxScale, scale + delta));
+  const zoomRatio = scale / oldScale;
+
+  offsetX = mx - (mx - offsetX) * zoomRatio;
+  offsetY = my - (my - offsetY) * zoomRatio;
+
+  redraw();
+});
+
+// ================================
 // ▼ Drawing process
 // ================================
 function redraw() {
