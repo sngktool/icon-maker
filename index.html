@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrameLab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-card">
+
+    <header>
+      <h1>FrameLab</h1>
+      <p class="description">画像をフレーム付きアイコンにできます</p>
+    </header>
+
+    <section class="notice">
+      <h2>ご利用にあたって</h2>
+      <p>
+        ・スマートフォンから利用してください。<br>
+        ・選択した画像はサーバーに保存されません。
+      </p>
+    </section>
+
+    <main>
+      <!-- 画像選択 -->
+      <label><span class="step-badge">1</span> 画像を選択</label>
+      <input type="file" id="imageInput" accept="image/*">
+
+      <!-- フレーム選択 -->
+      <label><span class="step-badge">2</span> フレームを選択</label>
+      <select id="frameSelect">
+        <option value="">選択してください</option>
+      </select>
+
+      <!-- キャンバス -->
+      <canvas id="canvas"></canvas>
+
+      <!-- 保存・リセット（横並び） -->
+      <div class="button-row">
+        <button id="saveBtn" class="btn-save">保存</button>
+        <button id="resetBtn" class="btn-reset">リセット</button>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
