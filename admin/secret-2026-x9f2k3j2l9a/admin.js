@@ -101,8 +101,8 @@ uploadBtn.addEventListener("click", async () => {
   const file = frameInput.files[0];
   const frameName = frameNameInput.value.trim();
 
-  if (!file) return (resultBox.textContent = "⚠ No file selected.");
-  if (!frameName) return (resultBox.textContent = "⚠ Please enter a frame name.");
+  if (!file) return (resultBox.textContent = "⚠ ファイルが選択されていません。");
+  if (!frameName) return (resultBox.textContent = "⚠ フレーム名を入力してください。");
 
   uploadFrame(file, frameName);
 });
@@ -110,7 +110,7 @@ uploadBtn.addEventListener("click", async () => {
 // ▼ Actual upload
 async function uploadFrame(file, frameName) {
   uploadBtn.disabled = true;
-  uploadBtn.innerHTML = `<span class="loading-spinner"></span>Uploading…`;
+  uploadBtn.innerHTML = `<span class="loading-spinner"></span>アップロード中…`;
 
   try {
     const base64Data = await toBase64(file);
@@ -120,8 +120,8 @@ async function uploadFrame(file, frameName) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        filename: randomName,      // ← Random alphanumeric filename
-        displayName: frameName,    // ← Frame name (Japanese allowed)
+        filename: randomName,      // ← ランダム英数字
+        displayName: frameName,    // ← 日本語フレーム名
         content: base64Data
       })
     });
@@ -136,31 +136,31 @@ async function uploadFrame(file, frameName) {
         <div class="success-box fade-in">
           <div class="success-icon">✓</div>
           <div class="success-text">
-            Upload completed.<br>
-            Please check if it has been reflected.
+            アップロードが完了しました。<br>
+            反映をご確認ください。
           </div>
         </div>
 
         <div class="success-links fade-in">
-          <p>[GitHub File URL]</p>
+          <p>【GitHub 反映URL】</p>
           <a href="${rawUrl}" target="_blank">${rawUrl}</a>
 
-          <p>[User Page]</p>
+          <p>【ユーザー画面】</p>
           <a href="${userPageUrl}" target="_blank">${userPageUrl}</a>
 
-          <button id="checkReflectBtn" class="reflect-btn">Check Reflection</button>
+          <button id="checkReflectBtn" class="reflect-btn">反映チェック</button>
           <div id="reflectStatus"></div>
         </div>
       `;
     } else {
-      resultBox.innerHTML = `❌ Error: ${data.error?.message || "Unknown error"}`;
+      resultBox.innerHTML = `❌ エラー：${data.error?.message || "不明なエラー"}`;
     }
   } catch {
-    resultBox.textContent = "⚠ A network error occurred.";
+    resultBox.textContent = "⚠ 通信エラーが発生しました。";
   }
 
   uploadBtn.disabled = false;
-  uploadBtn.innerHTML = "Upload";
+  uploadBtn.innerHTML = "アップロード";
 }
 
 // ▼ Reflection check
@@ -168,7 +168,7 @@ document.addEventListener("click", async (e) => {
   if (e.target.id !== "checkReflectBtn") return;
 
   const statusBox = document.getElementById("reflectStatus");
-  statusBox.textContent = "⏳ Checking…";
+  statusBox.textContent = "⏳ チェック中…";
 
   const rawUrl = document.querySelector("#result a").href;
 
@@ -179,14 +179,14 @@ document.addEventListener("click", async (e) => {
     });
 
     if (res.status === 200) {
-      statusBox.innerHTML = `✅ Reflected successfully.`;
+      statusBox.innerHTML = `✅ 反映されています。`;
       statusBox.style.color = "#0a8a0a";
     } else {
-      statusBox.innerHTML = `⌛ Not reflected yet (${res.status})`;
+      statusBox.innerHTML = `⌛ まだ反映されていません（${res.status}）`;
       statusBox.style.color = "#b8860b";
     }
   } catch {
-    statusBox.innerHTML = `⚠ An error occurred during checking.`;
+    statusBox.innerHTML = `⚠ チェック中にエラーが発生しました`;
     statusBox.style.color = "#c0392b";
   }
 });
@@ -205,7 +205,7 @@ async function loadFrameList() {
     const data = await res.json();
 
     if (!data.success || !data.data.frames.length) {
-      listBox.innerHTML = "There are currently no frames available for deletion.";
+      listBox.innerHTML = "現在、削除できるフレームはありません。";
       return;
     }
 
@@ -225,7 +225,7 @@ async function loadFrameList() {
     });
 
   } catch {
-    listBox.innerHTML = "⚠ Failed to retrieve frame list.";
+    listBox.innerHTML = "⚠ フレーム一覧の取得に失敗しました。";
   }
 }
 
@@ -233,11 +233,11 @@ async function loadFrameList() {
 document.getElementById("deleteSelectedBtn")?.addEventListener("click", async () => {
   const checked = [...document.querySelectorAll(".frame-checkbox:checked")];
   if (checked.length === 0) {
-    alert("Please select frames to delete.");
+    alert("削除するフレームを選択してください。");
     return;
   }
 
-  if (!confirm(`Delete ${checked.length} frame(s)?`)) return;
+  if (!confirm(`${checked.length} 件のフレームを削除しますか？`)) return;
 
   for (const checkbox of checked) {
     const filename = checkbox.dataset.name;
@@ -254,12 +254,12 @@ document.getElementById("deleteSelectedBtn")?.addEventListener("click", async ()
       if (data.success) {
         checkbox.closest(".frame-item").remove();
       } else {
-        alert(`Delete failed: ${filename} (${data.error.message})`);
+        alert(`削除失敗: ${filename} (${data.error.message})`);
       }
     } catch {
-      alert(`Network error: ${filename}`);
+      alert(`通信エラー: ${filename}`);
     }
   }
 
-  alert("Deletion completed.");
+  alert("削除が完了しました。");
 });
