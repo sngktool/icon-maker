@@ -316,7 +316,7 @@ input[type="file"]::-webkit-file-upload-button:hover {
    Preview
 ================================ */
 #previewBox {
-  margin: 1.6em 0;
+  margin: 0.8em 0;
   padding: 1.4em;
   background: var(--glass-soft);
   backdrop-filter: blur(10px);
