@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FrameLab 管理画面</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+
+<body>
+
+  <!-- ▼ Admin Header Banner -->
+  <div class="admin-banner">管理画面</div>
+
+  <!-- ▼ Mode Selection Card -->
+  <div id="modeSelect" class="app-card">
+    <h2 class="mode-title">操作を選択</h2>
+    <p class="subtext">フレームを追加するか、削除するか選んでください。</p>
+
+    <div class="mode-buttons">
+      <button id="addModeBtn" class="mode-btn">フレームを追加</button>
+      <button id="deleteModeBtn" class="mode-btn">フレームを削除</button>
+    </div>
+  </div>
+
+  <!-- ▼ Add Mode -->
+  <div id="addModeCard" class="app-card" style="display:none;">
+    <h2 class="mode-title">フレーム追加モード</h2>
+     <section class="notice">
+      <h2>ご利用にあたって</h2>
+      <p>
+        ・PC/スマートフォンどちらからでも利用できます。<br>
+        ・フレームの内側のみを透過した画像を登録してください。<br>
+        ・反映に時間がかかる場合があります。（最長5分程度）
+      </p>
+     </section>
+
+    <label><span class="step-badge">1</span>画像を選択</label>
+    <input type="file" id="frameInput" accept="image/*" />
+
+    <div id="previewBox">
+      <img id="previewImage" src="" alt="プレビュー" />
+    </div>
+
+    <label><span class="step-badge">2</span>フレーム名を入力</label>
+    <input type="text" id="frameName" placeholder="例：予約バトル" />
+
+    <!-- ▼ Upload Result Display (Referenced by JS as resultBox) -->
+    <div id="result"></div>
+
+    <div class="upload-actions">
+      <button id="backToSelectFromAdd" class="back-btn">← 戻る</button>
+      <button id="uploadBtn" class="upload-btn-main">アップロード</button>
+    </div>
+  </div>
+
+  <!-- ▼ Delete Mode -->
+  <div id="deleteModeCard" class="app-card" style="display:none;">
+    <h2 class="mode-title">フレーム削除モード</h2>
+     <section class="notice">
+      <h2>ご利用にあたって</h2>
+      <p>
+        ・PC/スマートフォンどちらからでも利用できます。<br>
+        ・削除したいフレームにチェックをいれてください。
+      </p>
+     </section>
+
+    <!-- ▼ Frame List -->
+    <div id="frameList" class="frame-list"></div>
+
+    <!-- ▼ Back + Delete -->
+    <div class="delete-actions">
+      <button id="backToSelectFromDelete" class="back-btn">← 戻る</button>
+      <button id="deleteSelectedBtn" class="delete-btn-main">選択削除</button>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
