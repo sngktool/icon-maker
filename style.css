@@ -140,7 +140,7 @@ select:focus {
 }
 
 /* ================================
-   File Button（太字解除・フォント統一）
+   File Button (Remove bold / unify font)
 ================================ */
 input[type="file"]::-webkit-file-upload-button {
   margin-right: 0.6em;
@@ -151,7 +151,7 @@ input[type="file"]::-webkit-file-upload-button {
   color: #4a5f85;
 
   font-family: "Noto Sans JP", sans-serif;
-  font-weight: 400; /* ← 太字解除 */
+  font-weight: 400; /* ← Remove bold */
   font-size: 0.9em;
 
   cursor: pointer;
@@ -186,7 +186,7 @@ canvas {
 }
 
 /* ================================
-   Buttons（左＝リセット／右＝保存）
+   Buttons (Left = Reset / Right = Save)
 ================================ */
 .button-row {
   display: flex;
@@ -197,7 +197,7 @@ canvas {
   flex-wrap: nowrap;
 }
 
-/* リセット（白ガラス） */
+/* Reset (White glass) */
 .button-row .btn-reset {
   order: 1;
   width: 45%;
@@ -222,7 +222,7 @@ canvas {
   transform: translateY(-2px);
 }
 
-/* 保存（青紫） */
+/* Save (Blue-purple) */
 .button-row .btn-save {
   order: 2;
   width: 45%;
@@ -247,7 +247,7 @@ canvas {
   transform: translateY(-2px);
 }
 
-/* スマホ対応 */
+/* Mobile support */
 @media (max-width: 600px) {
   .button-row {
     flex-direction: row;
