@@ -33,26 +33,26 @@ async function loadFrames() {
     const data = await res.json(); 
 
     if (!data.success) {
-      frameSelect.innerHTML = '<option value="">Not selected</option>';
+      frameSelect.innerHTML = '<option value="">未選択</option>';
       return;
     }
 
     const frames = data.data.frames;
 
-    frameSelect.innerHTML = '<option value="">Not selected</option>';
+    frameSelect.innerHTML = '<option value="">未選択</option>';
 
     frames.forEach(frame => {
       const option = document.createElement("option");
 
-      option.textContent = frame.displayName || frame.filename || "No name";
+      option.textContent = frame.displayName || frame.filename || "名称未設定";
       option.value = frame.url;
 
       frameSelect.appendChild(option);
     });
 
   } catch (err) {
-    console.error("Error fetching frame list:", err);
-    frameSelect.innerHTML = '<option value="">Not selected</option>';
+    console.error("フレーム一覧取得エラー:", err);
+    frameSelect.innerHTML = '<option value="">未選択</option>';
   }
 }
 
@@ -234,7 +234,7 @@ function redraw() {
 // ================================
 function saveHighRes() {
   if (!baseImage) {
-    alert("No image selected.");
+    alert("画像が選択されていません。");
     return;
   }
 
