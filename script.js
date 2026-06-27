@@ -1,11 +1,11 @@
 // ================================
-// FrameLab ユーザー画面 
+// FrameLab User Interface
 // ================================
 
-// ▼ Worker API（一覧取得）
+// ▼ Worker API (Fetch frame list)
 const WORKER_LIST_API = "https://framelab-uploader.narun091525-b98.workers.dev?mode=list";
 
-// ▼ DOM
+// ▼ DOM elements
 const imageInput = document.getElementById("imageInput");
 const frameSelect = document.getElementById("frameSelect");
 const canvas = document.getElementById("canvas");
@@ -13,11 +13,11 @@ const ctx = canvas.getContext("2d");
 const saveBtn = document.getElementById("saveBtn");
 const resetBtn = document.getElementById("resetBtn");
 
-// ▼ 画像オブジェクト
+// ▼ Image objects
 let baseImage = null;
 let frameImage = null;
 
-// ▼ 変形パラメータ
+// ▼ Transform parameters
 let scale = 1;
 let minScale = 0.3;
 let maxScale = 4;
@@ -25,39 +25,39 @@ let offsetX = 0;
 let offsetY = 0;
 
 // ================================
-// ▼ Worker からフレーム一覧を取得（displayName対応）
+// ▼ Fetch frame list from Worker
 // ================================
 async function loadFrames() {
   try {
     const res = await fetch(WORKER_LIST_API, { cache: "no-store" });
-    const data = await res.json(); // ← これでOK（UTF-8はWorker側で保証済み）
+    const data = await res.json(); 
 
     if (!data.success) {
-      frameSelect.innerHTML = '<option value="">未選択</option>';
+      frameSelect.innerHTML = '<option value="">Not selected</option>';
       return;
     }
 
     const frames = data.data.frames;
 
-    frameSelect.innerHTML = '<option value="">未選択</option>';
+    frameSelect.innerHTML = '<option value="">Not selected</option>';
 
     frames.forEach(frame => {
       const option = document.createElement("option");
 
-      option.textContent = frame.displayName || frame.filename || "名称未設定";
+      option.textContent = frame.displayName || frame.filename || "No name";
       option.value = frame.url;
 
       frameSelect.appendChild(option);
     });
 
   } catch (err) {
-    console.error("フレーム一覧取得エラー:", err);
-    frameSelect.innerHTML = '<option value="">未選択</option>';
+    console.error("Error fetching frame list:", err);
+    frameSelect.innerHTML = '<option value="">Not selected</option>';
   }
 }
 
 // ================================
-// ▼ Canvas サイズ調整
+// ▼ Canvas resizing
 // ================================
 function resizeCanvas() {
   const size = canvas.clientWidth;
@@ -79,7 +79,7 @@ window.addEventListener("resize", () => {
 });
 
 // ================================
-// ▼ baseImage 読み込み
+// ▼ Load baseImage
 // ================================
 imageInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
@@ -109,7 +109,7 @@ imageInput.addEventListener("change", (e) => {
 });
 
 // ================================
-// ▼ フレーム選択
+// ▼ Frame selection
 // ================================
 frameSelect.addEventListener("change", () => {
   const value = frameSelect.value;
@@ -127,7 +127,7 @@ frameSelect.addEventListener("change", () => {
 });
 
 // ================================
-// ▼ ピンチ距離
+// ▼ Pinch distance
 // ================================
 function getDistance(touches) {
   const dx = touches[0].clientX - touches[1].clientX;
@@ -135,7 +135,7 @@ function getDistance(touches) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ▼ ピンチ中心
+// ▼ Pinch center
 function getCenter(touches) {
   return {
     x: (touches[0].clientX + touches[1].clientX) / 2,
@@ -149,7 +149,7 @@ let lastY = null;
 let lastDist = null;
 
 // ================================
-// ▼ タッチ開始
+// ▼ Touch start
 // ================================
 canvas.addEventListener("touchstart", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -166,7 +166,7 @@ canvas.addEventListener("touchstart", (e) => {
 });
 
 // ================================
-// ▼ タッチ移動（ピンチ＋ドラッグ）
+// ▼ Touch move (pinch + drag)
 // ================================
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
@@ -203,7 +203,7 @@ canvas.addEventListener("touchmove", (e) => {
 }, { passive: false });
 
 // ================================
-// ▼ タッチ終了
+// ▼ Touch end
 // ================================
 canvas.addEventListener("touchend", () => {
   isDragging = false;
@@ -213,7 +213,7 @@ canvas.addEventListener("touchend", () => {
 });
 
 // ================================
-// ▼ 描画処理
+// ▼ Drawing process
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -230,11 +230,11 @@ function redraw() {
 }
 
 // ================================
-// ▼ 高解像度保存
+// ▼ High-resolution save
 // ================================
 function saveHighRes() {
   if (!baseImage) {
-    alert("画像が選択されていません。");
+    alert("No image selected.");
     return;
   }
 
@@ -274,7 +274,7 @@ function saveHighRes() {
 }
 
 // ================================
-// ▼ 完全リセット（やり直し）
+// ▼ Full reset
 // ================================
 resetBtn.addEventListener("click", () => {
   baseImage = null;
@@ -289,10 +289,10 @@ resetBtn.addEventListener("click", () => {
   imageInput.value = "";
   frameSelect.selectedIndex = 0;
 
-  console.log("完全リセット完了");
+  console.log("Full reset completed");
 });
 
 // ================================
-// ▼ 保存ボタン
+// ▼ Save button
 // ================================
 saveBtn.addEventListener("click", saveHighRes);
