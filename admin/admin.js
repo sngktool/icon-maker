@@ -130,7 +130,7 @@ async function uploadFrame(file, frameName) {
 
     if (data.success) {
       const rawUrl = data.data.url;
-      const userPageUrl = "https://framesynth.github.io/icon-maker/";
+      const userUrl = "https://sngktool.github.io/icon-maker/";
 
       resultBox.innerHTML = `
         <div class="success-box fade-in">
