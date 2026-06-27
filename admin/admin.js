@@ -120,8 +120,8 @@ async function uploadFrame(file, frameName) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        filename: randomName,      // ← ランダム英数字
-        displayName: frameName,    // ← 日本語フレーム名
+        filename: randomName,
+        displayName: frameName,
         content: base64Data
       })
     });
@@ -146,7 +146,7 @@ async function uploadFrame(file, frameName) {
           <a href="${rawUrl}" target="_blank">${rawUrl}</a>
 
           <p>【ユーザー画面】</p>
-          <a href="${userPageUrl}" target="_blank">${userPageUrl}</a>
+          <a href="${userUrl}" target="_blank">${userUrl}</a>
 
           <button id="checkReflectBtn" class="reflect-btn">反映チェック</button>
           <div id="reflectStatus"></div>
