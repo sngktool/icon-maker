@@ -2,7 +2,7 @@
 // FrameLab Admin Panel admin.js
 // ================================
 
-const WORKER_ENDPOINT = "https://framelab-uploader.narun091525-b98.workers.dev";
+const WORKER_ENDPOINT = "https://framelab.sngk-tool.workers.dev";
 
 // ▼ Mode switch elements
 const addModeBtn = document.getElementById("addModeBtn");
