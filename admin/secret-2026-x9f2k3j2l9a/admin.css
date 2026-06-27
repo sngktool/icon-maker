@@ -1,0 +1,450 @@
+/* ================================
+   FrameLab Admin Panel
+================================ */
+
+/* UI Tokens */
+:root {
+  --accent-blue: #6a8fc0;
+  --accent-light: #7fa0d0;
+  --text-main: #4a5f85;
+  --glass: rgba(255,255,255,0.72);
+  --glass-soft: rgba(255,255,255,0.65);
+  --shadow-main: rgba(90,125,168,0.15);
+  --shadow-light: rgba(90,125,168,0.08);
+  --radius-card: 18px;
+  --radius-btn: 12px;
+  --radius-input: 10px;
+}
+
+/* ================================
+   Base (Unified Font Across UI)
+================================ */
+html, body, button, input, select, label, p, h1, h2, h3, div, span {
+  font-family: "Noto Sans JP", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #e8ecf5 0%, #f4f6fb 45%, #f2f3f8 100%);
+  color: #222;
+  text-align: center;
+
+  line-height: 1.8;
+}
+
+/* ================================
+   Notice
+================================ */
+.notice {
+  margin: 1.2em auto;
+  text-align: left;
+}
+
+.notice h2 {
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #4a5f85;
+  border-bottom: 2px solid rgba(90,125,168,0.35);
+  display: inline-block;
+  padding-bottom: 2px;
+  margin-bottom: 0.3em;
+}
+
+.notice p {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(90,125,168,0.12);
+  font-size: 0.85em;
+  margin-top: 0;
+  padding: 0.9em;
+}
+
+/* ================================
+   Fade-in Animation
+================================ */
+.fade-in {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fadeInUp 0.45s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ================================
+   Admin Header Banner
+================================ */
+.admin-banner {
+  background: linear-gradient(180deg, #fff, #eef2fa);
+  color: var(--text-main);
+  padding: 0.6em;
+  font-size: 0.95em;
+  font-weight: 500;
+  border-radius: 0 0 16px 16px;
+  margin-bottom: 2.4em;
+  box-shadow: 0 2px 6px var(--shadow-light), 0 10px 30px var(--shadow-light);
+}
+
+/* ================================
+   Card (Blue-Purple Glass)
+================================ */
+.app-card {
+  width: 92%;
+  max-width: 440px;
+  margin: 2.4em auto;
+  padding: 2em 1.6em;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(90,125,168,0.25);
+  box-shadow: 0 4px 14px var(--shadow-main), 0 18px 40px var(--shadow-light);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.app-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px var(--shadow-main), 0 22px 50px var(--shadow-light);
+}
+
+/* ================================
+   Title & Subtext
+================================ */
+.mode-title {
+  font-family: "Playfair Display", "Noto Sans JP", serif;
+  font-size: 1.48em;
+  font-weight: 600;
+  color: var(--text-main);
+
+  margin-bottom: 0.8em;
+  line-height: 1.4;
+}
+
+.subtext {
+  font-size: 0.9em;
+  color: #6b7a99;
+  margin-top: 0.2em;
+  margin-bottom: 1.2em;
+  line-height: 1.8;
+}
+
+/* ================================
+   Button Row
+================================ */
+.mode-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.8em;
+  margin: 2.4em 0 1.6em;
+  flex-wrap: wrap;
+}
+
+/* ================================
+   Common Button Styles
+================================ */
+.mode-btn,
+#uploadBtn,
+.back-btn,
+.delete-btn-main,
+.upload-btn-main {
+  width: 180px;
+  height: 54px;
+  border-radius: var(--radius-btn);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 500;
+  font-size: 0.95em;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ================================
+   Blue-Purple Glass (Default)
+================================ */
+.mode-btn,
+#uploadBtn {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-light));
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.4);
+  box-shadow: 0 4px 10px var(--shadow-main), inset 0 0 18px rgba(255,255,255,0.25);
+}
+
+/* ========================================
+   Primary Action Buttons (Delete / Add)
+======================================== */
+.delete-btn-main,
+.upload-btn-main {
+  background: linear-gradient(135deg, #7fa0d0, #6a8fc0);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.55);
+  box-shadow:
+    0 4px 10px rgba(122,150,200,0.25),
+    inset 0 0 18px rgba(255,255,255,0.25);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.delete-btn-main:hover,
+.upload-btn-main:hover {
+  background: linear-gradient(135deg, #8fb2e0, #7698c8);
+  transform: translateY(-2px);
+}
+
+/* ================================
+   Back Button (White Glass)
+================================ */
+.back-btn {
+  background: linear-gradient(135deg, #dfe5f7, #cfd8f0);
+  color: #364766;
+  border: 1px solid rgba(255,255,255,0.45);
+  box-shadow:
+    0 2px 8px rgba(90,125,168,0.12),
+    inset 0 0 18px rgba(255,255,255,0.28);
+}
+
+.back-btn:hover {
+  background: linear-gradient(135deg, #f0f3fb, #e4e9f9);
+  transform: translateY(-2px);
+}
+
+/* 光沢ライン */
+.mode-btn::before,
+#uploadBtn::before,
+.back-btn::before,
+.delete-btn-main::before,
+.upload-btn-main::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 80%;
+  height: 100%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-25deg);
+  transition: left 0.8s ease;
+}
+
+.mode-btn:hover::before,
+#uploadBtn:hover::before,
+.back-btn:hover::before,
+.delete-btn-main:hover::before,
+.upload-btn-main:hover::before {
+  left: 120%;
+}
+
+/* ================================
+   Labels & Input Fields
+================================ */
+label {
+  display: flex;
+  align-items: center;
+  margin: 1.6em 0 0.6em; 
+  font-size: 0.92em;
+  font-weight: 500;
+  color: var(--text-main);
+  line-height: 1.8;
+}
+
+.step-badge {
+  width: 1.6em;
+  height: 1.6em;
+  margin-right: 0.6em;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text-main);
+  border-radius: 6px;
+  border: 1px solid rgba(90,125,168,0.35);
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(6px);
+}
+
+/* Input Fields */
+input[type="file"],
+input[type="text"] {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75em 1em;
+  font-size: 0.92em;
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(90,125,168,0.25);
+  border-radius: var(--radius-input);
+  box-shadow: 0 2px 6px var(--shadow-main);
+  margin-bottom: 1.4em;
+  transition: 0.25s ease;
+}
+
+/* ================================
+   File Button
+================================ */
+input[type="file"]::-webkit-file-upload-button {
+  margin-right: 0.6em;
+  padding: 0.6em 1em;
+  background: linear-gradient(135deg, #eef2ff, #dfe6fa);
+  border: none;
+  border-radius: 6px;
+  color: #4a5f85;
+
+  font-family: "Noto Sans JP", sans-serif;
+  font-weight: 400;
+  font-size: 0.9em;
+
+  cursor: pointer;
+  transition: 0.25s ease;
+  box-shadow:
+    0 2px 6px rgba(90,125,168,0.15),
+    inset 0 0 12px rgba(255,255,255,0.25);
+}
+
+input[type="file"]::-webkit-file-upload-button:hover {
+  background: linear-gradient(135deg, #e3e8ff, #d6defa);
+  box-shadow:
+    0 4px 10px rgba(90,125,168,0.22),
+    inset 0 0 18px rgba(255,255,255,0.3);
+}
+
+/* ================================
+   Preview
+================================ */
+#previewBox {
+  margin: 1.6em 0;
+  padding: 1.4em;
+  background: var(--glass-soft);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  box-shadow: 0 3px 12px var(--shadow-main);
+  display: none;
+}
+
+#previewImage {
+  width: 100%;
+  max-width: 380px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px var(--shadow-main);
+  display: block;
+  margin: 0 auto;
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#previewImage.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ================================
+   Frame List (Delete Mode)
+================================ */
+.frame-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6em;
+  margin-top: 2.4em;
+}
+
+.frame-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.4em;
+  padding: 1.2em;
+  background: var(--glass-soft);
+  border-radius: 14px;
+  box-shadow: 0 3px 10px var(--shadow-main);
+  text-align: left;
+  line-height: 1.8; 
+}
+
+.frame-checkbox {
+  transform: scale(1.3);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.frame-thumb {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #000;
+  flex-shrink: 0;
+}
+
+.frame-name {
+  flex: 1;
+  font-size: 0.9em;
+  color: var(--text-main);
+  word-break: break-all;
+  line-height: 1.8; 
+}
+
+.frame-checkbox:checked + img,
+.frame-checkbox:checked ~ .frame-name {
+  filter: brightness(1.15);
+  transform: scale(1.02);
+}
+
+/* ================================
+   Delete Mode: Button Layout
+================================ */
+.delete-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1em;
+  margin-top: 2.4em; 
+  flex-wrap: nowrap;
+}
+
+.delete-actions .back-btn,
+.delete-actions .delete-btn-main {
+  width: 45%;
+  min-width: 120px;
+  height: 54px;
+  border-radius: 12px;
+}
+
+/* ================================
+   Add Mode: Back + Upload
+================================ */
+.upload-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 1em;
+  margin-top: 2.4em; 
+  flex-wrap: nowrap;
+}
+
+.upload-actions .back-btn,
+.upload-actions .upload-btn-main {
+  width: 45%;
+  min-width: 120px;
+  height: 54px;
+  border-radius: 12px;
+}
+
+@media (max-width: 600px) {
+  .upload-actions {
+    flex-direction: row;
+    gap: 0.8em;
+    margin-top: 2.4em;
+  }
+
+  .upload-actions .back-btn,
+  .upload-actions .upload-btn-main {
+    width: 44%;
+    min-width: 110px;
+  }
+}
