@@ -24,44 +24,6 @@ let maxScale = 4;
 let offsetX = 0;
 let offsetY = 0;
 
-// ▼ マスク（複雑形状対応）
-let maskCanvas = null;
-let maskCtx = null;
-
-// ================================
-// ▼ フレームから透明領域マスク生成（canvasに完全フィット）
-// ================================
-function buildMaskFromFrame(frameImage) {
-  maskCanvas = document.createElement("canvas");
-  maskCanvas.width = canvas.width;
-  maskCanvas.height = canvas.height;
-  maskCtx = maskCanvas.getContext("2d");
-
-  // frameImage を canvas にフィットさせて描画
-  maskCtx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
-
-  const imgData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imgData.data;
-
-  // 透明部分だけ白（不透明）にする
-  for (let i = 0; i < data.length; i += 4) {
-    const alpha = data[i + 3];
-    if (alpha === 0) {
-      data[i] = 255;
-      data[i + 1] = 255;
-      data[i + 2] = 255;
-      data[i + 3] = 255;
-    } else {
-      data[i] = 0;
-      data[i + 1] = 0;
-      data[i + 2] = 0;
-      data[i + 3] = 0;
-    }
-  }
-
-  maskCtx.putImageData(imgData, 0, 0);
-}
-
 // ================================
 // ▼ Fetch frame list from Worker
 // ================================
@@ -153,18 +115,13 @@ frameSelect.addEventListener("change", () => {
   const value = frameSelect.value;
   if (!value) {
     frameImage = null;
-    maskCanvas = null;
     redraw();
     return;
   }
 
   frameImage = new Image();
   frameImage.crossOrigin = "anonymous";
-
-  frameImage.onload = () => {
-    buildMaskFromFrame(frameImage);
-    redraw();
-  };
+  frameImage.onload = redraw;
 
   frameImage.src = value + "?t=" + Date.now();
 });
@@ -312,7 +269,7 @@ canvas.addEventListener("wheel", (e) => {
 });
 
 // ================================
-// ▼ Drawing process（マスク統合版）
+// ▼ Drawing process
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -320,36 +277,22 @@ function redraw() {
   if (baseImage) {
     const drawW = baseImage.width * scale;
     const drawH = baseImage.height * scale;
-
-    // ① ベース画像
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
-
-    // ② マスク適用（ズーム・ドラッグに完全追従）
-    if (maskCanvas) {
-      ctx.save();
-      ctx.globalCompositeOperation = "destination-in";
-
-      ctx.drawImage(
-        maskCanvas,
-        0, 0, maskCanvas.width, maskCanvas.height,
-        offsetX, offsetY, drawW, drawH
-      );
-
-      ctx.restore();
-    }
   }
 
-  // ③ フレーム
   if (frameImage && frameImage.complete) {
     ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
   }
 }
 
 // ================================
-// ▼ High-resolution save（マスク追従）
+// ▼ High-resolution save
 // ================================
 function saveHighRes() {
-  if (!baseImage) return;
+  if (!baseImage) {
+    alert("画像が選択されていません。");
+    return;
+  }
 
   const scaleFactor = 3;
   const saveCanvas = document.createElement("canvas");
@@ -365,36 +308,25 @@ function saveHighRes() {
   const x = offsetX * scaleFactor;
   const y = offsetY * scaleFactor;
 
-  // ベース画像
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
-  // マスク適用（保存時も完全追従）
-  if (maskCanvas) {
-    sctx.save();
-    sctx.globalCompositeOperation = "destination-in";
-
-    sctx.drawImage(
-      maskCanvas,
-      0, 0, maskCanvas.width, maskCanvas.height,
-      x, y, drawW, drawH
-    );
-
-    sctx.restore();
-  }
-
-  // フレーム
   if (frameImage && frameImage.complete) {
     sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
   }
 
+  const now = new Date();
+  const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
+
   saveCanvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "framelab.png";
-    a.click();
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  });
+  }, "image/png");
 }
 
 // ================================
@@ -403,8 +335,6 @@ function saveHighRes() {
 resetBtn.addEventListener("click", () => {
   baseImage = null;
   frameImage = null;
-  maskCanvas = null;
-  maskCtx = null;
 
   scale = 1;
   offsetX = 0;
