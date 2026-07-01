@@ -24,6 +24,49 @@ let maxScale = 4;
 let offsetX = 0;
 let offsetY = 0;
 
+// ▼ 透明領域データ
+let innerArea = null;
+
+// ================================
+// ▼ 透明領域検出（完全版）
+// ================================
+function detectTransparentArea(frameImage) {
+  const tempCanvas = document.createElement("canvas");
+  const tctx = tempCanvas.getContext("2d");
+
+  tempCanvas.width = frameImage.width;
+  tempCanvas.height = frameImage.height;
+
+  tctx.drawImage(frameImage, 0, 0);
+
+  const imgData = tctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+  const data = imgData.data;
+
+  let minX = tempCanvas.width, minY = tempCanvas.height;
+  let maxX = 0, maxY = 0;
+
+  for (let y = 0; y < tempCanvas.height; y++) {
+    for (let x = 0; x < tempCanvas.width; x++) {
+      const index = (y * tempCanvas.width + x) * 4;
+      const alpha = data[index + 3];
+
+      if (alpha === 0) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  return {
+    x: minX,
+    y: minY,
+    w: maxX - minX,
+    h: maxY - minY
+  };
+}
+
 // ================================
 // ▼ Fetch frame list from Worker
 // ================================
@@ -109,25 +152,30 @@ imageInput.addEventListener("change", (e) => {
 });
 
 // ================================
-// ▼ Frame selection
+// ▼ Frame selection（透明領域検出を統合）
 // ================================
 frameSelect.addEventListener("change", () => {
   const value = frameSelect.value;
   if (!value) {
     frameImage = null;
+    innerArea = null;
     redraw();
     return;
   }
 
   frameImage = new Image();
   frameImage.crossOrigin = "anonymous";
-  frameImage.onload = redraw;
+
+  frameImage.onload = () => {
+    innerArea = detectTransparentArea(frameImage);
+    redraw();
+  };
 
   frameImage.src = value + "?t=" + Date.now();
 });
 
 // ================================
-// ▼ Pinch distance
+// ▼ Pinch / Drag / Wheel zoom（既存）
 // ================================
 function getDistance(touches) {
   const dx = touches[0].clientX - touches[1].clientX;
@@ -135,7 +183,6 @@ function getDistance(touches) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ▼ Pinch center
 function getCenter(touches) {
   return {
     x: (touches[0].clientX + touches[1].clientX) / 2,
@@ -148,9 +195,6 @@ let lastX = null;
 let lastY = null;
 let lastDist = null;
 
-// ================================
-// ▼ Touch start
-// ================================
 canvas.addEventListener("touchstart", (e) => {
   const rect = canvas.getBoundingClientRect();
 
@@ -165,9 +209,6 @@ canvas.addEventListener("touchstart", (e) => {
   }
 });
 
-// ================================
-// ▼ Touch move (pinch + drag)
-// ================================
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -202,9 +243,6 @@ canvas.addEventListener("touchmove", (e) => {
   }
 }, { passive: false });
 
-// ================================
-// ▼ Touch end
-// ================================
 canvas.addEventListener("touchend", () => {
   isDragging = false;
   lastX = null;
@@ -212,9 +250,6 @@ canvas.addEventListener("touchend", () => {
   lastDist = null;
 });
 
-// ================================
-// ▼ PC: Drag move
-// ================================
 canvas.addEventListener("mousedown", (e) => {
   const rect = canvas.getBoundingClientRect();
   isDragging = true;
@@ -246,9 +281,6 @@ canvas.addEventListener("mouseleave", () => {
   isDragging = false;
 });
 
-// ================================
-// ▼ PC: Wheel zoom
-// ================================
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
 
@@ -269,12 +301,23 @@ canvas.addEventListener("wheel", (e) => {
 });
 
 // ================================
-// ▼ Drawing process
+// ▼ Drawing process（透明領域 clip 統合）
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (baseImage) {
+  if (baseImage && innerArea) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(innerArea.x, innerArea.y, innerArea.w, innerArea.h);
+    ctx.clip();
+
+    const drawW = baseImage.width * scale;
+    const drawH = baseImage.height * scale;
+    ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
+
+    ctx.restore();
+  } else if (baseImage) {
     const drawW = baseImage.width * scale;
     const drawH = baseImage.height * scale;
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
@@ -286,7 +329,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save
+// ▼ High-resolution save（clip対応）
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -303,12 +346,28 @@ function saveHighRes() {
   sctx.fillStyle = "#ffffff";
   sctx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
 
+  if (innerArea) {
+    sctx.save();
+    sctx.beginPath();
+    sctx.rect(
+      innerArea.x * scaleFactor,
+      innerArea.y * scaleFactor,
+      innerArea.w * scaleFactor,
+      innerArea.h * scaleFactor
+    );
+    sctx.clip();
+  }
+
   const drawW = baseImage.width * scale * scaleFactor;
   const drawH = baseImage.height * scale * scaleFactor;
   const x = offsetX * scaleFactor;
   const y = offsetY * scaleFactor;
 
   sctx.drawImage(baseImage, x, y, drawW, drawH);
+
+  if (innerArea) {
+    sctx.restore();
+  }
 
   if (frameImage && frameImage.complete) {
     sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
@@ -335,6 +394,7 @@ function saveHighRes() {
 resetBtn.addEventListener("click", () => {
   baseImage = null;
   frameImage = null;
+  innerArea = null;
 
   scale = 1;
   offsetX = 0;
