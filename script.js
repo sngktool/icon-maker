@@ -25,48 +25,39 @@ let maskCanvas = null;
 let maskCtx = null;
 
 // ================================
-// ▼ フレームから「透明領域マスク」を生成
+// ▼ フレームから「透明領域マスク」を生成（Canvas座標に完全一致）
 // ================================
 function buildMaskFromFrame(frameImage) {
-  const w = frameImage.width;
-  const h = frameImage.height;
+  // マスクは Canvas と同じサイズにする（これが重要）
+  maskCanvas = document.createElement("canvas");
+  maskCanvas.width = canvas.width;
+  maskCanvas.height = canvas.height;
+  maskCtx = maskCanvas.getContext("2d");
 
-  const tempCanvas = document.createElement("canvas");
-  const tctx = tempCanvas.getContext("2d");
-  tempCanvas.width = w;
-  tempCanvas.height = h;
+  // フレームを Canvas サイズに合わせて描画
+  maskCtx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
 
-  tctx.drawImage(frameImage, 0, 0);
-  const imgData = tctx.getImageData(0, 0, w, h);
+  const imgData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
-  const maskData = tctx.createImageData(w, h);
-  const m = maskData.data;
-
+  // 透明領域だけを白（不透明）にする
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
 
-    // フレームが「完全に透明」のところをマスクの「不透明」にする
     if (alpha === 0) {
-      m[i] = 255;     // R
-      m[i + 1] = 255; // G
-      m[i + 2] = 255; // B
-      m[i + 3] = 255; // A
+      data[i] = 255;
+      data[i + 1] = 255;
+      data[i + 2] = 255;
+      data[i + 3] = 255;
     } else {
-      m[i] = 0;
-      m[i + 1] = 0;
-      m[i + 2] = 0;
-      m[i + 3] = 0;
+      data[i] = 0;
+      data[i + 1] = 0;
+      data[i + 2] = 0;
+      data[i + 3] = 0;
     }
   }
 
-  tctx.putImageData(maskData, 0, 0);
-
-  maskCanvas = document.createElement("canvas");
-  maskCanvas.width = w;
-  maskCanvas.height = h;
-  maskCtx = maskCanvas.getContext("2d");
-  maskCtx.drawImage(tempCanvas, 0, 0);
+  maskCtx.putImageData(imgData, 0, 0);
 }
 
 // ================================
@@ -152,7 +143,7 @@ imageInput.addEventListener("change", (e) => {
 });
 
 // ================================
-// ▼ フレーム選択（マスク生成を統合）
+// ▼ フレーム選択（マスク生成）
 // ================================
 frameSelect.addEventListener("change", () => {
   const value = frameSelect.value;
@@ -179,7 +170,7 @@ frameSelect.addEventListener("change", () => {
 // ▼ Pinch / Drag / Wheel zoom（既存）
 // ================================
 function getDistance(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
+  const dx = touches[0].clientX - touches[1].client.clientX;
   const dy = touches[0].clientY - touches[1].clientY;
   return Math.sqrt(dx * dx + dy * dy);
 }
@@ -302,18 +293,18 @@ canvas.addEventListener("wheel", (e) => {
 });
 
 // ================================
-// ▼ Drawing process（複雑形状マスク適用）
+// ▼ Drawing process（複雑形状マスク適用・はみ出し防止）
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (baseImage) {
-    // まずベース画像を描画
+    // ① ベース画像
     const drawW = baseImage.width * scale;
     const drawH = baseImage.height * scale;
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
 
-    // マスクがある場合は destination-in で「透明領域の形だけ残す」
+    // ② マスク適用（Canvas座標に完全一致）
     if (maskCanvas) {
       ctx.save();
       ctx.globalCompositeOperation = "destination-in";
@@ -322,7 +313,7 @@ function redraw() {
     }
   }
 
-  // 最後にフレームを上から描画
+  // ③ フレーム
   if (frameImage && frameImage.complete) {
     ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
   }
@@ -354,7 +345,7 @@ function saveHighRes() {
 
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
-  // マスク適用（高解像度用に拡大して描画）
+  // マスク適用（高解像度用に拡大）
   if (maskCanvas) {
     sctx.save();
     sctx.globalCompositeOperation = "destination-in";
