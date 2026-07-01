@@ -2,8 +2,10 @@
 // FrameLab User Interface
 // ================================
 
+// ▼ Worker API (Fetch frame list)
 const WORKER_LIST_API = "https://framelab.sngk-tool.workers.dev?mode=list";
 
+// ▼ DOM elements
 const imageInput = document.getElementById("imageInput");
 const frameSelect = document.getElementById("frameSelect");
 const canvas = document.getElementById("canvas");
@@ -11,21 +13,23 @@ const ctx = canvas.getContext("2d");
 const saveBtn = document.getElementById("saveBtn");
 const resetBtn = document.getElementById("resetBtn");
 
+// ▼ Image objects
 let baseImage = null;
 let frameImage = null;
 
+// ▼ Transform parameters
 let scale = 1;
 let minScale = 0.3;
 let maxScale = 4;
 let offsetX = 0;
 let offsetY = 0;
 
-// ▼ マスク用（複雑形状対応）
+// ▼ マスク（複雑形状対応）
 let maskCanvas = null;
 let maskCtx = null;
 
 // ================================
-// ▼ フレームから「透明領域マスク」を生成（Canvas座標に完全一致）
+// ▼ フレームから透明領域マスク生成（canvasに完全フィット）
 // ================================
 function buildMaskFromFrame(frameImage) {
   maskCanvas = document.createElement("canvas");
@@ -59,7 +63,7 @@ function buildMaskFromFrame(frameImage) {
 }
 
 // ================================
-// ▼ フレーム一覧取得
+// ▼ Fetch frame list from Worker
 // ================================
 async function loadFrames() {
   try {
@@ -72,12 +76,15 @@ async function loadFrames() {
     }
 
     const frames = data.data.frames;
+
     frameSelect.innerHTML = '<option value="">未選択</option>';
 
     frames.forEach(frame => {
       const option = document.createElement("option");
+
       option.textContent = frame.displayName || frame.filename || "名称未設定";
       option.value = frame.url;
+
       frameSelect.appendChild(option);
     });
 
@@ -110,7 +117,7 @@ window.addEventListener("resize", () => {
 });
 
 // ================================
-// ▼ ベース画像読み込み
+// ▼ Load baseImage
 // ================================
 imageInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
@@ -140,14 +147,13 @@ imageInput.addEventListener("change", (e) => {
 });
 
 // ================================
-// ▼ フレーム選択（マスク生成）
+// ▼ Frame selection
 // ================================
 frameSelect.addEventListener("change", () => {
   const value = frameSelect.value;
   if (!value) {
     frameImage = null;
     maskCanvas = null;
-    maskCtx = null;
     redraw();
     return;
   }
@@ -164,7 +170,149 @@ frameSelect.addEventListener("change", () => {
 });
 
 // ================================
-// ▼ Drawing process（スケール追従＋座標補正）
+// ▼ Pinch distance
+// ================================
+function getDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// ▼ Pinch center
+function getCenter(touches) {
+  return {
+    x: (touches[0].clientX + touches[1].clientX) / 2,
+    y: (touches[0].clientY + touches[1].clientY) / 2
+  };
+}
+
+let isDragging = false;
+let lastX = null;
+let lastY = null;
+let lastDist = null;
+
+// ================================
+// ▼ Touch start
+// ================================
+canvas.addEventListener("touchstart", (e) => {
+  const rect = canvas.getBoundingClientRect();
+
+  if (e.touches.length === 1) {
+    isDragging = true;
+    lastX = e.touches[0].clientX - rect.left;
+    lastY = e.touches[0].clientY - rect.top;
+  }
+
+  if (e.touches.length === 2) {
+    lastDist = getDistance(e.touches);
+  }
+});
+
+// ================================
+// ▼ Touch move (pinch + drag)
+// ================================
+canvas.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+
+  if (e.touches.length === 2) {
+    const dist = getDistance(e.touches);
+    const center = getCenter(e.touches);
+    const cx = center.x - rect.left;
+    const cy = center.y - rect.top;
+
+    const oldScale = scale;
+    const delta = (dist - lastDist) * 0.004;
+    scale = Math.max(minScale, Math.min(maxScale, scale + delta));
+
+    const zoomRatio = scale / oldScale;
+    offsetX = cx - (cx - offsetX) * zoomRatio;
+    offsetY = cy - (cy - offsetY) * zoomRatio;
+
+    lastDist = dist;
+    redraw();
+    return;
+  }
+
+  if (e.touches.length === 1 && isDragging) {
+    const x = e.touches[0].clientX - rect.left;
+    const y = e.touches[0].clientY - rect.top;
+    offsetX += x - lastX;
+    offsetY += y - lastY;
+    lastX = x;
+    lastY = y;
+    redraw();
+  }
+}, { passive: false });
+
+// ================================
+// ▼ Touch end
+// ================================
+canvas.addEventListener("touchend", () => {
+  isDragging = false;
+  lastX = null;
+  lastY = null;
+  lastDist = null;
+});
+
+// ================================
+// ▼ PC: Drag move
+// ================================
+canvas.addEventListener("mousedown", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  isDragging = true;
+  lastX = e.clientX - rect.left;
+  lastY = e.clientY - rect.top;
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!isDragging) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  offsetX += x - lastX;
+  offsetY += y - lastY;
+
+  lastX = x;
+  lastY = y;
+
+  redraw();
+});
+
+canvas.addEventListener("mouseup", () => {
+  isDragging = false;
+});
+
+canvas.addEventListener("mouseleave", () => {
+  isDragging = false;
+});
+
+// ================================
+// ▼ PC: Wheel zoom
+// ================================
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  const oldScale = scale;
+  const delta = e.deltaY > 0 ? -0.05 : 0.05;
+
+  scale = Math.max(minScale, Math.min(maxScale, scale + delta));
+  const zoomRatio = scale / oldScale;
+
+  offsetX = mx - (mx - offsetX) * zoomRatio;
+  offsetY = my - (my - offsetY) * zoomRatio;
+
+  redraw();
+});
+
+// ================================
+// ▼ Drawing process（マスク統合版）
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -176,7 +324,7 @@ function redraw() {
     // ① ベース画像
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
 
-    // ② マスク適用（ベース画像と完全同期）
+    // ② マスク適用（ズーム・ドラッグに完全追従）
     if (maskCanvas) {
       ctx.save();
       ctx.globalCompositeOperation = "destination-in";
@@ -184,7 +332,7 @@ function redraw() {
       ctx.drawImage(
         maskCanvas,
         0, 0, maskCanvas.width, maskCanvas.height,
-        0, 0, canvas.width, canvas.height
+        offsetX, offsetY, drawW, drawH
       );
 
       ctx.restore();
@@ -198,13 +346,10 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save（スケール追従＋座標補正）
+// ▼ High-resolution save（マスク追従）
 // ================================
 function saveHighRes() {
-  if (!baseImage) {
-    alert("画像が選択されていません。");
-    return;
-  }
+  if (!baseImage) return;
 
   const scaleFactor = 3;
   const saveCanvas = document.createElement("canvas");
@@ -223,7 +368,7 @@ function saveHighRes() {
   // ベース画像
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
-  // マスク適用（保存時も完全同期）
+  // マスク適用（保存時も完全追従）
   if (maskCanvas) {
     sctx.save();
     sctx.globalCompositeOperation = "destination-in";
@@ -231,7 +376,7 @@ function saveHighRes() {
     sctx.drawImage(
       maskCanvas,
       0, 0, maskCanvas.width, maskCanvas.height,
-      0, 0, saveCanvas.width, saveCanvas.height
+      x, y, drawW, drawH
     );
 
     sctx.restore();
@@ -242,19 +387,14 @@ function saveHighRes() {
     sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
   }
 
-  const now = new Date();
-  const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
-
   saveCanvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "framelab.png";
+    a.click();
     URL.revokeObjectURL(url);
-  }, "image/png");
+  });
 }
 
 // ================================
