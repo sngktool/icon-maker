@@ -2,10 +2,8 @@
 // FrameLab User Interface
 // ================================
 
-// ▼ Worker API (Fetch frame list)
 const WORKER_LIST_API = "https://framelab.sngk-tool.workers.dev?mode=list";
 
-// ▼ DOM elements
 const imageInput = document.getElementById("imageInput");
 const frameSelect = document.getElementById("frameSelect");
 const canvas = document.getElementById("canvas");
@@ -13,62 +11,66 @@ const ctx = canvas.getContext("2d");
 const saveBtn = document.getElementById("saveBtn");
 const resetBtn = document.getElementById("resetBtn");
 
-// ▼ Image objects
 let baseImage = null;
 let frameImage = null;
 
-// ▼ Transform parameters
 let scale = 1;
 let minScale = 0.3;
 let maxScale = 4;
 let offsetX = 0;
 let offsetY = 0;
 
-// ▼ 透明領域データ
-let innerArea = null;
+// ▼ マスク用（複雑形状対応）
+let maskCanvas = null;
+let maskCtx = null;
 
 // ================================
-// ▼ 透明領域検出（完全版）
+// ▼ フレームから「透明領域マスク」を生成
 // ================================
-function detectTransparentArea(frameImage) {
+function buildMaskFromFrame(frameImage) {
+  const w = frameImage.width;
+  const h = frameImage.height;
+
   const tempCanvas = document.createElement("canvas");
   const tctx = tempCanvas.getContext("2d");
-
-  tempCanvas.width = frameImage.width;
-  tempCanvas.height = frameImage.height;
+  tempCanvas.width = w;
+  tempCanvas.height = h;
 
   tctx.drawImage(frameImage, 0, 0);
-
-  const imgData = tctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+  const imgData = tctx.getImageData(0, 0, w, h);
   const data = imgData.data;
 
-  let minX = tempCanvas.width, minY = tempCanvas.height;
-  let maxX = 0, maxY = 0;
+  const maskData = tctx.createImageData(w, h);
+  const m = maskData.data;
 
-  for (let y = 0; y < tempCanvas.height; y++) {
-    for (let x = 0; x < tempCanvas.width; x++) {
-      const index = (y * tempCanvas.width + x) * 4;
-      const alpha = data[index + 3];
+  for (let i = 0; i < data.length; i += 4) {
+    const alpha = data[i + 3];
 
-      if (alpha === 0) {
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
-      }
+    // フレームが「完全に透明」のところをマスクの「不透明」にする
+    if (alpha === 0) {
+      m[i] = 255;     // R
+      m[i + 1] = 255; // G
+      m[i + 2] = 255; // B
+      m[i + 3] = 255; // A
+    } else {
+      m[i] = 0;
+      m[i + 1] = 0;
+      m[i + 2] = 0;
+      m[i + 3] = 0;
     }
   }
 
-  return {
-    x: minX,
-    y: minY,
-    w: maxX - minX,
-    h: maxY - minY
-  };
+  tctx.putImageData(maskData, 0, 0);
+
+  maskCanvas = document.createElement("canvas");
+  maskCanvas.width = w;
+  maskCanvas.height = h;
+  maskCtx = maskCanvas.getContext("2d");
+  maskCtx.drawImage(tempCanvas, 0, 0);
 }
 
 // ================================
-// ▼ Fetch frame list from Worker
+// ▼ フレーム一覧取得
 // ================================
 async function loadFrames() {
   try {
@@ -86,10 +88,8 @@ async function loadFrames() {
 
     frames.forEach(frame => {
       const option = document.createElement("option");
-
       option.textContent = frame.displayName || frame.filename || "名称未設定";
       option.value = frame.url;
-
       frameSelect.appendChild(option);
     });
 
@@ -122,7 +122,7 @@ window.addEventListener("resize", () => {
 });
 
 // ================================
-// ▼ Load baseImage
+// ▼ ベース画像読み込み
 // ================================
 imageInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
@@ -152,13 +152,14 @@ imageInput.addEventListener("change", (e) => {
 });
 
 // ================================
-// ▼ Frame selection（透明領域検出を統合）
+// ▼ フレーム選択（マスク生成を統合）
 // ================================
 frameSelect.addEventListener("change", () => {
   const value = frameSelect.value;
   if (!value) {
     frameImage = null;
-    innerArea = null;
+    maskCanvas = null;
+    maskCtx = null;
     redraw();
     return;
   }
@@ -167,7 +168,7 @@ frameSelect.addEventListener("change", () => {
   frameImage.crossOrigin = "anonymous";
 
   frameImage.onload = () => {
-    innerArea = detectTransparentArea(frameImage);
+    buildMaskFromFrame(frameImage);
     redraw();
   };
 
@@ -301,35 +302,34 @@ canvas.addEventListener("wheel", (e) => {
 });
 
 // ================================
-// ▼ Drawing process（透明領域 clip 統合）
+// ▼ Drawing process（複雑形状マスク適用）
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (baseImage && innerArea) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(innerArea.x, innerArea.y, innerArea.w, innerArea.h);
-    ctx.clip();
-
+  if (baseImage) {
+    // まずベース画像を描画
     const drawW = baseImage.width * scale;
     const drawH = baseImage.height * scale;
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
 
-    ctx.restore();
-  } else if (baseImage) {
-    const drawW = baseImage.width * scale;
-    const drawH = baseImage.height * scale;
-    ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
+    // マスクがある場合は destination-in で「透明領域の形だけ残す」
+    if (maskCanvas) {
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
   }
 
+  // 最後にフレームを上から描画
   if (frameImage && frameImage.complete) {
     ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
   }
 }
 
 // ================================
-// ▼ High-resolution save（clip対応）
+// ▼ High-resolution save（複雑形状マスク対応）
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -346,18 +346,7 @@ function saveHighRes() {
   sctx.fillStyle = "#ffffff";
   sctx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
 
-  if (innerArea) {
-    sctx.save();
-    sctx.beginPath();
-    sctx.rect(
-      innerArea.x * scaleFactor,
-      innerArea.y * scaleFactor,
-      innerArea.w * scaleFactor,
-      innerArea.h * scaleFactor
-    );
-    sctx.clip();
-  }
-
+  // ベース画像
   const drawW = baseImage.width * scale * scaleFactor;
   const drawH = baseImage.height * scale * scaleFactor;
   const x = offsetX * scaleFactor;
@@ -365,10 +354,15 @@ function saveHighRes() {
 
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
-  if (innerArea) {
+  // マスク適用（高解像度用に拡大して描画）
+  if (maskCanvas) {
+    sctx.save();
+    sctx.globalCompositeOperation = "destination-in";
+    sctx.drawImage(maskCanvas, 0, 0, saveCanvas.width, saveCanvas.height);
     sctx.restore();
   }
 
+  // フレーム
   if (frameImage && frameImage.complete) {
     sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
   }
@@ -394,7 +388,8 @@ function saveHighRes() {
 resetBtn.addEventListener("click", () => {
   baseImage = null;
   frameImage = null;
-  innerArea = null;
+  maskCanvas = null;
+  maskCtx = null;
 
   scale = 1;
   offsetX = 0;
