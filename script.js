@@ -33,11 +33,13 @@ function buildMaskFromFrame(frameImage) {
   maskCanvas.height = canvas.height;
   maskCtx = maskCanvas.getContext("2d");
 
+  // frameImage を canvas にフィットさせて描画
   maskCtx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
 
   const imgData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
+  // 透明部分だけ白（不透明）にする
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
     if (alpha === 0) {
@@ -168,20 +170,23 @@ function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (baseImage) {
-    // ① ベース画像
     const drawW = baseImage.width * scale;
     const drawH = baseImage.height * scale;
+
+    // ① ベース画像
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
 
-    // ② マスク適用（スケール・位置追従）
+    // ② マスク適用（ベース画像と完全同期）
     if (maskCanvas) {
       ctx.save();
       ctx.globalCompositeOperation = "destination-in";
+
       ctx.drawImage(
         maskCanvas,
         0, 0, maskCanvas.width, maskCanvas.height,
         0, 0, canvas.width, canvas.height
       );
+
       ctx.restore();
     }
   }
@@ -210,23 +215,25 @@ function saveHighRes() {
   sctx.fillStyle = "#ffffff";
   sctx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
 
-  // ベース画像
   const drawW = baseImage.width * scale * scaleFactor;
   const drawH = baseImage.height * scale * scaleFactor;
   const x = offsetX * scaleFactor;
   const y = offsetY * scaleFactor;
 
+  // ベース画像
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
-  // マスク適用（スケール・位置追従）
+  // マスク適用（保存時も完全同期）
   if (maskCanvas) {
     sctx.save();
     sctx.globalCompositeOperation = "destination-in";
+
     sctx.drawImage(
       maskCanvas,
       0, 0, maskCanvas.width, maskCanvas.height,
       0, 0, saveCanvas.width, saveCanvas.height
     );
+
     sctx.restore();
   }
 
