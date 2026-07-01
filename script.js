@@ -28,22 +28,18 @@ let maskCtx = null;
 // ▼ フレームから「透明領域マスク」を生成（Canvas座標に完全一致）
 // ================================
 function buildMaskFromFrame(frameImage) {
-  // マスクは Canvas と同じサイズにする（これが重要）
   maskCanvas = document.createElement("canvas");
   maskCanvas.width = canvas.width;
   maskCanvas.height = canvas.height;
   maskCtx = maskCanvas.getContext("2d");
 
-  // フレームを Canvas サイズに合わせて描画
   maskCtx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
 
   const imgData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
-  // 透明領域だけを白（不透明）にする
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
-
     if (alpha === 0) {
       data[i] = 255;
       data[i + 1] = 255;
@@ -74,7 +70,6 @@ async function loadFrames() {
     }
 
     const frames = data.data.frames;
-
     frameSelect.innerHTML = '<option value="">未選択</option>';
 
     frames.forEach(frame => {
@@ -167,133 +162,7 @@ frameSelect.addEventListener("change", () => {
 });
 
 // ================================
-// ▼ Pinch / Drag / Wheel zoom（既存）
-// ================================
-function getDistance(touches) {
-  const dx = touches[0].clientX - touches[1].client.clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-function getCenter(touches) {
-  return {
-    x: (touches[0].clientX + touches[1].clientX) / 2,
-    y: (touches[0].clientY + touches[1].clientY) / 2
-  };
-}
-
-let isDragging = false;
-let lastX = null;
-let lastY = null;
-let lastDist = null;
-
-canvas.addEventListener("touchstart", (e) => {
-  const rect = canvas.getBoundingClientRect();
-
-  if (e.touches.length === 1) {
-    isDragging = true;
-    lastX = e.touches[0].clientX - rect.left;
-    lastY = e.touches[0].clientY - rect.top;
-  }
-
-  if (e.touches.length === 2) {
-    lastDist = getDistance(e.touches);
-  }
-});
-
-canvas.addEventListener("touchmove", (e) => {
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-
-  if (e.touches.length === 2) {
-    const dist = getDistance(e.touches);
-    const center = getCenter(e.touches);
-    const cx = center.x - rect.left;
-    const cy = center.y - rect.top;
-
-    const oldScale = scale;
-    const delta = (dist - lastDist) * 0.004;
-    scale = Math.max(minScale, Math.min(maxScale, scale + delta));
-
-    const zoomRatio = scale / oldScale;
-    offsetX = cx - (cx - offsetX) * zoomRatio;
-    offsetY = cy - (cy - offsetY) * zoomRatio;
-
-    lastDist = dist;
-    redraw();
-    return;
-  }
-
-  if (e.touches.length === 1 && isDragging) {
-    const x = e.touches[0].clientX - rect.left;
-    const y = e.touches[0].clientY - rect.top;
-    offsetX += x - lastX;
-    offsetY += y - lastY;
-    lastX = x;
-    lastY = y;
-    redraw();
-  }
-}, { passive: false });
-
-canvas.addEventListener("touchend", () => {
-  isDragging = false;
-  lastX = null;
-  lastY = null;
-  lastDist = null;
-});
-
-canvas.addEventListener("mousedown", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  isDragging = true;
-  lastX = e.clientX - rect.left;
-  lastY = e.clientY - rect.top;
-});
-
-canvas.addEventListener("mousemove", (e) => {
-  if (!isDragging) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
-  offsetX += x - lastX;
-  offsetY += y - lastY;
-
-  lastX = x;
-  lastY = y;
-
-  redraw();
-});
-
-canvas.addEventListener("mouseup", () => {
-  isDragging = false;
-});
-
-canvas.addEventListener("mouseleave", () => {
-  isDragging = false;
-});
-
-canvas.addEventListener("wheel", (e) => {
-  e.preventDefault();
-
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-
-  const oldScale = scale;
-  const delta = e.deltaY > 0 ? -0.05 : 0.05;
-
-  scale = Math.max(minScale, Math.min(maxScale, scale + delta));
-  const zoomRatio = scale / oldScale;
-
-  offsetX = mx - (mx - offsetX) * zoomRatio;
-  offsetY = my - (my - offsetY) * zoomRatio;
-
-  redraw();
-});
-
-// ================================
-// ▼ Drawing process（複雑形状マスク適用・はみ出し防止）
+// ▼ Drawing process（スケール追従＋座標補正）
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -304,11 +173,15 @@ function redraw() {
     const drawH = baseImage.height * scale;
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
 
-    // ② マスク適用（Canvas座標に完全一致）
+    // ② マスク適用（スケール・位置追従）
     if (maskCanvas) {
       ctx.save();
       ctx.globalCompositeOperation = "destination-in";
-      ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(
+        maskCanvas,
+        0, 0, maskCanvas.width, maskCanvas.height,
+        0, 0, canvas.width, canvas.height
+      );
       ctx.restore();
     }
   }
@@ -320,7 +193,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save（複雑形状マスク対応）
+// ▼ High-resolution save（スケール追従＋座標補正）
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -345,11 +218,15 @@ function saveHighRes() {
 
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
-  // マスク適用（高解像度用に拡大）
+  // マスク適用（スケール・位置追従）
   if (maskCanvas) {
     sctx.save();
     sctx.globalCompositeOperation = "destination-in";
-    sctx.drawImage(maskCanvas, 0, 0, saveCanvas.width, saveCanvas.height);
+    sctx.drawImage(
+      maskCanvas,
+      0, 0, maskCanvas.width, maskCanvas.height,
+      0, 0, saveCanvas.width, saveCanvas.height
+    );
     sctx.restore();
   }
 
