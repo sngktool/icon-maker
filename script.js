@@ -123,7 +123,8 @@ frameSelect.addEventListener("change", () => {
   frameImage.crossOrigin = "anonymous";
   frameImage.onload = redraw;
 
-  frameImage.src = value + "?t=" + Date.now();
+  // ▼ キャッシュ禁止を削除（ここだけ修正）
+  frameImage.src = value;
 });
 
 // ================================
