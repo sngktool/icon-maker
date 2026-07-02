@@ -286,7 +286,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save
+// ▼ High-resolution save (Tikring方式)
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -300,6 +300,8 @@ function saveHighRes() {
   saveCanvas.height = canvas.height * scaleFactor;
   const sctx = saveCanvas.getContext("2d");
 
+  // ▼ 白背景方式（Tikring方式）
+  sctx.globalCompositeOperation = "destination-over";
   sctx.fillStyle = "#ffffff";
   sctx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
 
