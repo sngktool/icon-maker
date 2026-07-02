@@ -38,15 +38,12 @@ async function loadFrames() {
     }
 
     const frames = data.data.frames;
-
     frameSelect.innerHTML = '<option value="">未選択</option>';
 
     frames.forEach(frame => {
       const option = document.createElement("option");
-
       option.textContent = frame.displayName || frame.filename || "名称未設定";
       option.value = frame.url;
-
       frameSelect.appendChild(option);
     });
 
@@ -62,10 +59,8 @@ async function loadFrames() {
 function resizeCanvas() {
   const size = canvas.clientWidth;
   if (!size) return;
-
   canvas.width = size;
   canvas.height = size;
-
   redraw();
 }
 
@@ -122,12 +117,11 @@ frameSelect.addEventListener("change", () => {
   frameImage = new Image();
   frameImage.crossOrigin = "anonymous";
   frameImage.onload = redraw;
-
   frameImage.src = value + "?t=" + Date.now();
 });
 
 // ================================
-// ▼ Pinch distance
+// ▼ Pinch & Drag
 // ================================
 function getDistance(touches) {
   const dx = touches[0].clientX - touches[1].clientX;
@@ -135,7 +129,6 @@ function getDistance(touches) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ▼ Pinch center
 function getCenter(touches) {
   return {
     x: (touches[0].clientX + touches[1].clientX) / 2,
@@ -148,26 +141,18 @@ let lastX = null;
 let lastY = null;
 let lastDist = null;
 
-// ================================
-// ▼ Touch start
-// ================================
 canvas.addEventListener("touchstart", (e) => {
   const rect = canvas.getBoundingClientRect();
-
   if (e.touches.length === 1) {
     isDragging = true;
     lastX = e.touches[0].clientX - rect.left;
     lastY = e.touches[0].clientY - rect.top;
   }
-
   if (e.touches.length === 2) {
     lastDist = getDistance(e.touches);
   }
 });
 
-// ================================
-// ▼ Touch move (pinch + drag)
-// ================================
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -202,9 +187,6 @@ canvas.addEventListener("touchmove", (e) => {
   }
 }, { passive: false });
 
-// ================================
-// ▼ Touch end
-// ================================
 canvas.addEventListener("touchend", () => {
   isDragging = false;
   lastX = null;
@@ -213,7 +195,7 @@ canvas.addEventListener("touchend", () => {
 });
 
 // ================================
-// ▼ PC: Drag move
+// ▼ PC: Drag & Zoom
 // ================================
 canvas.addEventListener("mousedown", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -224,47 +206,30 @@ canvas.addEventListener("mousedown", (e) => {
 
 canvas.addEventListener("mousemove", (e) => {
   if (!isDragging) return;
-
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
-
   offsetX += x - lastX;
   offsetY += y - lastY;
-
   lastX = x;
   lastY = y;
-
   redraw();
 });
 
-canvas.addEventListener("mouseup", () => {
-  isDragging = false;
-});
+canvas.addEventListener("mouseup", () => { isDragging = false; });
+canvas.addEventListener("mouseleave", () => { isDragging = false; });
 
-canvas.addEventListener("mouseleave", () => {
-  isDragging = false;
-});
-
-// ================================
-// ▼ PC: Wheel zoom
-// ================================
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
-
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
-
   const oldScale = scale;
   const delta = e.deltaY > 0 ? -0.05 : 0.05;
-
   scale = Math.max(minScale, Math.min(maxScale, scale + delta));
   const zoomRatio = scale / oldScale;
-
   offsetX = mx - (mx - offsetX) * zoomRatio;
   offsetY = my - (my - offsetY) * zoomRatio;
-
   redraw();
 });
 
@@ -273,13 +238,11 @@ canvas.addEventListener("wheel", (e) => {
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   if (baseImage) {
     const drawW = baseImage.width * scale;
     const drawH = baseImage.height * scale;
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
   }
-
   if (frameImage && frameImage.complete) {
     ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
   }
@@ -300,24 +263,29 @@ function saveHighRes() {
   saveCanvas.height = canvas.height * scaleFactor;
   const sctx = saveCanvas.getContext("2d");
 
-  // ▼ 白背景方式（Tikring方式）
-  sctx.globalCompositeOperation = "destination-over";
-  sctx.fillStyle = "#ffffff";
-  sctx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
-
   const drawW = baseImage.width * scale * scaleFactor;
   const drawH = baseImage.height * scale * scaleFactor;
   const x = offsetX * scaleFactor;
   const y = offsetY * scaleFactor;
 
+  // ① ユーザー画像
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
+  // ② フレーム
   if (frameImage && frameImage.complete) {
     sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
   }
 
+  // ③ 白背景（Tikring方式）
+  sctx.globalCompositeOperation = "destination-over";
+  sctx.fillStyle = "#ffffff";
+  sctx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
+
+  // ④ 保存
   const now = new Date();
-  const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
+  const filename =
+    `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_` +
+    `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
 
   saveCanvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
