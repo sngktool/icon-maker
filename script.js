@@ -127,7 +127,7 @@ frameSelect.addEventListener("change", () => {
 });
 
 // ================================
-// ▼ Pinch distance / center
+// ▼ Pinch distance
 // ================================
 function getDistance(touches) {
   const dx = touches[0].clientX - touches[1].clientX;
@@ -135,6 +135,7 @@ function getDistance(touches) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+// ▼ Pinch center
 function getCenter(touches) {
   return {
     x: (touches[0].clientX + touches[1].clientX) / 2,
@@ -148,7 +149,7 @@ let lastY = null;
 let lastDist = null;
 
 // ================================
-// ▼ Touch events
+// ▼ Touch start
 // ================================
 canvas.addEventListener("touchstart", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -164,6 +165,9 @@ canvas.addEventListener("touchstart", (e) => {
   }
 });
 
+// ================================
+// ▼ Touch move (pinch + drag)
+// ================================
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -198,6 +202,9 @@ canvas.addEventListener("touchmove", (e) => {
   }
 }, { passive: false });
 
+// ================================
+// ▼ Touch end
+// ================================
 canvas.addEventListener("touchend", () => {
   isDragging = false;
   lastX = null;
@@ -262,52 +269,10 @@ canvas.addEventListener("wheel", (e) => {
 });
 
 // ================================
-// ▼ 共通マスク生成（表示・保存で使う）
-// ================================
-function createMask(frameImg, w, h) {
-  const maskCanvas = document.createElement("canvas");
-  const maskCtx = maskCanvas.getContext("2d");
-  maskCanvas.width = w;
-  maskCanvas.height = h;
-  maskCtx.drawImage(frameImg, 0, 0, w, h);
-
-  const maskData = maskCtx.getImageData(0, 0, w, h);
-  const data = maskData.data;
-
-  const rects = [];
-  const threshold = 50;
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4 + 3;
-      if (data[i] < threshold) {
-        rects.push({ x, y });
-      }
-    }
-  }
-
-  return rects;
-}
-
-// ================================
-// ▼ Drawing process（表示側）
+// ▼ Drawing process
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (!frameImage) return;
-
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const rects = createMask(frameImage, canvas.width, canvas.height);
-
-  ctx.save();
-  ctx.beginPath();
-  rects.forEach(({ x, y }) => {
-    ctx.rect(x, y, 1, 1);
-  });
-  ctx.clip();
 
   if (baseImage) {
     const drawW = baseImage.width * scale;
@@ -315,16 +280,17 @@ function redraw() {
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
   }
 
-  ctx.restore();
-  ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+  if (frameImage && frameImage.complete) {
+    ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+  }
 }
 
 // ================================
-// ▼ High-resolution save（保存側）
+// ▼ High-resolution save
 // ================================
 function saveHighRes() {
-  if (!baseImage || !frameImage) {
-    alert("画像とフレームを選択してください。");
+  if (!baseImage) {
+    alert("画像が選択されていません。");
     return;
   }
 
@@ -334,17 +300,8 @@ function saveHighRes() {
   saveCanvas.height = canvas.height * scaleFactor;
   const sctx = saveCanvas.getContext("2d");
 
-  sctx.fillStyle = "black";
+  sctx.fillStyle = "#ffffff";
   sctx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
-
-  const rects = createMask(frameImage, canvas.width, canvas.height);
-
-  sctx.save();
-  sctx.beginPath();
-  rects.forEach(({ x, y }) => {
-    sctx.rect(x * scaleFactor, y * scaleFactor, scaleFactor, scaleFactor);
-  });
-  sctx.clip();
 
   const drawW = baseImage.width * scale * scaleFactor;
   const drawH = baseImage.height * scale * scaleFactor;
@@ -353,15 +310,12 @@ function saveHighRes() {
 
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
-  sctx.restore();
-  sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
+  if (frameImage && frameImage.complete) {
+    sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
+  }
 
   const now = new Date();
-  const filename =
-    `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}` +
-    `${String(now.getDate()).padStart(2, "0")}_` +
-    `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}` +
-    `${String(now.getSeconds()).padStart(2, "0")}.png`;
+  const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
 
   saveCanvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
