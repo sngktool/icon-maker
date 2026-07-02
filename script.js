@@ -123,8 +123,7 @@ frameSelect.addEventListener("change", () => {
   frameImage.crossOrigin = "anonymous";
   frameImage.onload = redraw;
 
-  // ▼ キャッシュ禁止を削除（ここだけ修正）
-  frameImage.src = value;
+  frameImage.src = value; // キャッシュ禁止削除済み
 });
 
 // ================================
@@ -270,10 +269,37 @@ canvas.addEventListener("wheel", (e) => {
 });
 
 // ================================
-// ▼ Drawing process
+// ▼ Drawing process（マスク処理統合版）
 // ================================
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!frameImage) return;
+
+  // ▼ 黒背景（フレーム外側）
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // ▼ マスク処理開始
+  ctx.save();
+
+  const maskCanvas = document.createElement("canvas");
+  const maskCtx = maskCanvas.getContext("2d");
+  maskCanvas.width = canvas.width;
+  maskCanvas.height = canvas.height;
+  maskCtx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+
+  const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = maskData.data;
+
+  ctx.beginPath();
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const i = (y * canvas.width + x) * 4 + 3;
+      if (data[i] < 10) ctx.rect(x, y, 1, 1);
+    }
+  }
+  ctx.clip();
 
   if (baseImage) {
     const drawW = baseImage.width * scale;
@@ -281,13 +307,13 @@ function redraw() {
     ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
   }
 
-  if (frameImage && frameImage.complete) {
-    ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
-  }
+  ctx.restore();
+
+  ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
 }
 
 // ================================
-// ▼ High-resolution save
+// ▼ High-resolution save（マスク処理統合版）
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -301,9 +327,33 @@ function saveHighRes() {
   saveCanvas.height = canvas.height * scaleFactor;
   const sctx = saveCanvas.getContext("2d");
 
-  sctx.fillStyle = "#ffffff";
+  // ▼ 黒背景（フレーム外側）
+  sctx.fillStyle = "black";
   sctx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
 
+  // ▼ マスク処理開始
+  const maskCanvas = document.createElement("canvas");
+  const maskCtx = maskCanvas.getContext("2d");
+  maskCanvas.width = saveCanvas.width;
+  maskCanvas.height = saveCanvas.height;
+  maskCtx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
+
+  const maskData = maskCtx.getImageData(0, 0, saveCanvas.width, saveCanvas.height);
+  const data = maskData.data;
+
+  sctx.save();
+  sctx.beginPath();
+
+  for (let y = 0; y < saveCanvas.height; y++) {
+    for (let x = 0; x < saveCanvas.width; x++) {
+      const i = (y * saveCanvas.width + x) * 4 + 3;
+      if (data[i] < 10) sctx.rect(x, y, 1, 1);
+    }
+  }
+
+  sctx.clip();
+
+  // ▼ clip 内側だけに baseImage を描画
   const drawW = baseImage.width * scale * scaleFactor;
   const drawH = baseImage.height * scale * scaleFactor;
   const x = offsetX * scaleFactor;
@@ -311,9 +361,10 @@ function saveHighRes() {
 
   sctx.drawImage(baseImage, x, y, drawW, drawH);
 
-  if (frameImage && frameImage.complete) {
-    sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
-  }
+  sctx.restore();
+
+  // ▼ 最後にフレームを重ねる
+  sctx.drawImage(frameImage, 0, 0, saveCanvas.width, saveCanvas.height);
 
   const now = new Date();
   const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
