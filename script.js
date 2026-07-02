@@ -347,7 +347,7 @@ function saveHighRes() {
   for (let y = 0; y < saveCanvas.height; y++) {
     for (let x = 0; x < saveCanvas.width; x++) {
       const i = (y * saveCanvas.width + x) * 4 + 3;
-      if (data[i] < 10) sctx.rect(x, y, 1, 1);
+      if (data[i] < 50) sctx.rect(x, y, 1, 1);
     }
   }
 
