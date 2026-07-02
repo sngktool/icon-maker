@@ -1,8 +1,8 @@
 // ================================
-// FrameLab User Interface (Optimized)
+// FrameLab User Interface
 // ================================
 
-// ▼ Worker API
+// ▼ Worker API (Fetch frame list)
 const WORKER_LIST_API = "https://framelab.sngk-tool.workers.dev?mode=list";
 
 // ▼ DOM elements
@@ -24,47 +24,31 @@ let maxScale = 4;
 let offsetX = 0;
 let offsetY = 0;
 
-// ▼ Offscreen canvas（高速化の要）
-const offCanvas = document.createElement("canvas");
-const offCtx = offCanvas.getContext("2d");
-
-// ▼ Redraw制御（requestAnimationFrame）
-let redrawRequested = false;
-function requestRedraw() {
-  if (!redrawRequested) {
-    redrawRequested = true;
-    requestAnimationFrame(() => {
-      redrawRequested = false;
-      redraw();
-    });
-  }
-}
-
 // ================================
-// ▼ Fetch frame list
+// ▼ Fetch frame list from Worker
 // ================================
 async function loadFrames() {
   try {
     const res = await fetch(WORKER_LIST_API, { cache: "no-store" });
-    const data = await res.json();
+    const data = await res.json(); 
 
-    const frames = data?.data?.frames || [];
+    if (!data.success) {
+      frameSelect.innerHTML = '<option value="">未選択</option>';
+      return;
+    }
 
-    const frag = document.createDocumentFragment();
-    const empty = document.createElement("option");
-    empty.value = "";
-    empty.textContent = "未選択";
-    frag.appendChild(empty);
+    const frames = data.data.frames;
+
+    frameSelect.innerHTML = '<option value="">未選択</option>';
 
     frames.forEach(frame => {
       const option = document.createElement("option");
+
       option.textContent = frame.displayName || frame.filename || "名称未設定";
       option.value = frame.url;
-      frag.appendChild(option);
-    });
 
-    frameSelect.innerHTML = "";
-    frameSelect.appendChild(frag);
+      frameSelect.appendChild(option);
+    });
 
   } catch (err) {
     console.error("フレーム一覧取得エラー:", err);
@@ -82,10 +66,7 @@ function resizeCanvas() {
   canvas.width = size;
   canvas.height = size;
 
-  offCanvas.width = size;
-  offCanvas.height = size;
-
-  requestRedraw();
+  redraw();
 }
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -120,7 +101,7 @@ imageInput.addEventListener("change", (e) => {
       offsetX = cw / 2 - (iw * scale) / 2;
       offsetY = ch / 2 - (ih * scale) / 2;
 
-      requestRedraw();
+      redraw();
     };
     baseImage.src = reader.result;
   };
@@ -134,18 +115,19 @@ frameSelect.addEventListener("change", () => {
   const value = frameSelect.value;
   if (!value) {
     frameImage = null;
-    requestRedraw();
+    redraw();
     return;
   }
 
   frameImage = new Image();
   frameImage.crossOrigin = "anonymous";
-  frameImage.onload = requestRedraw;
+  frameImage.onload = redraw;
+
   frameImage.src = value + "?t=" + Date.now();
 });
 
 // ================================
-// ▼ Touch / Mouse interactions
+// ▼ Pinch distance
 // ================================
 function getDistance(touches) {
   const dx = touches[0].clientX - touches[1].clientX;
@@ -153,6 +135,7 @@ function getDistance(touches) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+// ▼ Pinch center
 function getCenter(touches) {
   return {
     x: (touches[0].clientX + touches[1].clientX) / 2,
@@ -165,7 +148,9 @@ let lastX = null;
 let lastY = null;
 let lastDist = null;
 
+// ================================
 // ▼ Touch start
+// ================================
 canvas.addEventListener("touchstart", (e) => {
   const rect = canvas.getBoundingClientRect();
 
@@ -180,7 +165,9 @@ canvas.addEventListener("touchstart", (e) => {
   }
 });
 
-// ▼ Touch move
+// ================================
+// ▼ Touch move (pinch + drag)
+// ================================
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -200,7 +187,7 @@ canvas.addEventListener("touchmove", (e) => {
     offsetY = cy - (cy - offsetY) * zoomRatio;
 
     lastDist = dist;
-    requestRedraw();
+    redraw();
     return;
   }
 
@@ -211,11 +198,13 @@ canvas.addEventListener("touchmove", (e) => {
     offsetY += y - lastY;
     lastX = x;
     lastY = y;
-    requestRedraw();
+    redraw();
   }
 }, { passive: false });
 
+// ================================
 // ▼ Touch end
+// ================================
 canvas.addEventListener("touchend", () => {
   isDragging = false;
   lastX = null;
@@ -223,7 +212,9 @@ canvas.addEventListener("touchend", () => {
   lastDist = null;
 });
 
-// ▼ Mouse drag
+// ================================
+// ▼ PC: Drag move
+// ================================
 canvas.addEventListener("mousedown", (e) => {
   const rect = canvas.getBoundingClientRect();
   isDragging = true;
@@ -244,7 +235,7 @@ canvas.addEventListener("mousemove", (e) => {
   lastX = x;
   lastY = y;
 
-  requestRedraw();
+  redraw();
 });
 
 canvas.addEventListener("mouseup", () => {
@@ -255,7 +246,9 @@ canvas.addEventListener("mouseleave", () => {
   isDragging = false;
 });
 
-// ▼ Wheel zoom
+// ================================
+// ▼ PC: Wheel zoom
+// ================================
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
 
@@ -272,27 +265,24 @@ canvas.addEventListener("wheel", (e) => {
   offsetX = mx - (mx - offsetX) * zoomRatio;
   offsetY = my - (my - offsetY) * zoomRatio;
 
-  requestRedraw();
+  redraw();
 });
 
 // ================================
-// ▼ Drawing process (Optimized)
+// ▼ Drawing process
 // ================================
 function redraw() {
-  offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (baseImage) {
     const drawW = baseImage.width * scale;
     const drawH = baseImage.height * scale;
-    offCtx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
+    ctx.drawImage(baseImage, offsetX, offsetY, drawW, drawH);
   }
 
   if (frameImage && frameImage.complete) {
-    offCtx.drawImage(frameImage, 0, 0, offCanvas.width, offCanvas.height);
+    ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
   }
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(offCanvas, 0, 0);
 }
 
 // ================================
