@@ -286,7 +286,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save（Galaxy通知対応 完全版）
+// ▼ High-resolution save（Galaxy最強版）
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -315,29 +315,39 @@ function saveHighRes() {
   }
 
   const now = new Date();
-  const filename = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}_${now.getTime()}.png`;
+  const filename =
+    `${now.getFullYear()}` +
+    `${String(now.getMonth() + 1).padStart(2, "0")}` +
+    `${String(now.getDate()).padStart(2, "0")}_` +
+    `${now.getTime()}.png`;
 
   saveCanvas.toBlob(async (blob) => {
 
-    // ▼ Galaxy向け：Blob → File に変換（通知が出る）
     const file = new File([blob], filename, { type: "image/png" });
-
-    // ▼ File を Object URL に変換（Galaxyが通常ダウンロード扱いにする）
     const url = URL.createObjectURL(file);
 
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
 
+    // ▼ Galaxy向け追加対策
+    link.target = "_blank";
+    link.style.position = "fixed";
+    link.style.top = "10px";
+    link.style.left = "10px";
+    link.style.opacity = "0.01";
+    link.focus();
+
     document.body.appendChild(link);
+
+    link.dispatchEvent(new MouseEvent("mousedown"));
+    link.dispatchEvent(new MouseEvent("mouseup"));
     link.click();
 
-    // ▼ Galaxy向け：リンクを少し残す
     setTimeout(() => {
       document.body.removeChild(link);
     }, 300);
 
-    // ▼ revoke は遅延（通知安定）
     setTimeout(() => {
       URL.revokeObjectURL(url);
     }, 500);
