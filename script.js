@@ -317,8 +317,13 @@ function saveHighRes() {
   const now = new Date();
   const filename = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}_${now.getTime()}.png`;
 
-  saveCanvas.toBlob((blob) => {
-    const url = URL.createObjectURL(blob);
+  saveCanvas.toBlob(async (blob) => {
+
+    // ▼ Galaxy向け：Blob → File に変換（通知が出る）
+    const file = new File([blob], filename, { type: "image/png" });
+
+    // ▼ File を Object URL に変換（Galaxyが通常ダウンロード扱いにする）
+    const url = URL.createObjectURL(file);
 
     const link = document.createElement("a");
     link.href = url;
@@ -327,7 +332,7 @@ function saveHighRes() {
     document.body.appendChild(link);
     link.click();
 
-    // ▼ Galaxy向け：リンクを少し残す（通知が出る）
+    // ▼ Galaxy向け：リンクを少し残す
     setTimeout(() => {
       document.body.removeChild(link);
     }, 300);
