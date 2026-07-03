@@ -286,7 +286,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save（遅延 revoke 版）
+// ▼ High-resolution save（Galaxy通知対応 完全版）
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -315,18 +315,24 @@ function saveHighRes() {
   }
 
   const now = new Date();
-  const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
+  const filename = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}_${now.getTime()}.png`;
 
   saveCanvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
+
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
+
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
 
-    // ▼ ダウンロード通知が安定する遅延 revoke
+    // ▼ Galaxy向け：リンクを少し残す（通知が出る）
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 300);
+
+    // ▼ revoke は遅延（通知安定）
     setTimeout(() => {
       URL.revokeObjectURL(url);
     }, 500);
