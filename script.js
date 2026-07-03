@@ -286,7 +286,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save（Galaxy最強版）
+// ▼ High-resolution save
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -315,43 +315,17 @@ function saveHighRes() {
   }
 
   const now = new Date();
-  const filename =
-    `${now.getFullYear()}` +
-    `${String(now.getMonth() + 1).padStart(2, "0")}` +
-    `${String(now.getDate()).padStart(2, "0")}_` +
-    `${now.getTime()}.png`;
+  const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
 
-  saveCanvas.toBlob(async (blob) => {
-
-    const file = new File([blob], filename, { type: "image/png" });
-    const url = URL.createObjectURL(file);
-
+  saveCanvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
-
-    // ▼ Galaxy向け追加対策
-    link.target = "_blank";
-    link.style.position = "fixed";
-    link.style.top = "10px";
-    link.style.left = "10px";
-    link.style.opacity = "0.01";
-    link.focus();
-
     document.body.appendChild(link);
-
-    link.dispatchEvent(new MouseEvent("mousedown"));
-    link.dispatchEvent(new MouseEvent("mouseup"));
     link.click();
-
-    setTimeout(() => {
-      document.body.removeChild(link);
-    }, 300);
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 500);
-
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }, "image/png");
 }
 
