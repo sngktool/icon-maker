@@ -286,7 +286,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save
+// ▼ High-resolution save（遅延 revoke 版）
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -325,7 +325,12 @@ function saveHighRes() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+
+    // ▼ ダウンロード通知が安定する遅延 revoke
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 500);
+
   }, "image/png");
 }
 
