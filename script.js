@@ -329,7 +329,7 @@ function saveHighRes() {
     saveCanvas.toBlob((blob) => {
       const blobURL = URL.createObjectURL(blob);
       window.open(blobURL, "_blank");
-      alert("Safariでは長押しで保存できます。");
+      alert("新しいタブで画像を開きました。Safariでは長押しで保存できます。");
     }, "image/png");
     return;
   }
