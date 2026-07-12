@@ -286,7 +286,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save (Safari空タブ先開き方式)
+// ▼ High-resolution save（Safari＝表示のみ）
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -324,21 +324,21 @@ function saveHighRes() {
   const ua = navigator.userAgent;
   const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
 
-  // ▼ Safari専用処理（空タブ → BlobURLに差し替え）
+  // ▼ Safari専用：勝手に新規タブを開かず、表示を押したら同じタブで開く
   if (isSafari) {
-    const newTab = window.open("about:blank", "_blank");
-
     saveCanvas.toBlob((blob) => {
       const blobURL = URL.createObjectURL(blob);
-      newTab.location.href = blobURL;
 
-      alert("新しいタブで画像を開きました。Safariでは長押しで保存できます。");
+      // Safariはここで「表示／ダウンロード」ダイアログを出す
+      window.location.href = blobURL;
+
+      alert("Safariでは画像が表示されます。表示された画像を長押しして保存してください。");
     }, "image/png");
 
     return;
   }
 
-  // ▼ Chrome / Android / PC（通常のBlobダウンロード）
+  // ▼ Chrome / Android / PC：通常のダウンロード
   saveCanvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
