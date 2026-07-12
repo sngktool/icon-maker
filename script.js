@@ -286,7 +286,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save
+// ▼ High-resolution save (Safari対応版)
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -317,6 +317,24 @@ function saveHighRes() {
   const now = new Date();
   const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
 
+  const ua = navigator.userAgent;
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+
+  // ▼ Safari専用処理
+  if (isSafari) {
+    const dataURL = saveCanvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = dataURL;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    alert("Safariでは自動ダウンロードができないため、新しいタブで画像を開きました。画像を長押しして保存してください。");
+    return;
+  }
+
+  // ▼ Chrome / Android / PC
   saveCanvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
