@@ -315,26 +315,26 @@ function saveHighRes() {
   }
 
   const now = new Date();
-  const filename = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}.png`;
+  const filename =
+    `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}` +
+    `${String(now.getDate()).padStart(2, "0")}_` +
+    `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}` +
+    `${String(now.getSeconds()).padStart(2, "0")}.png`;
 
   const ua = navigator.userAgent;
   const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
 
-  // ▼ Safari専用処理
+  // ▼ Safari専用処理（Blob URL → 新規タブ → 長押し保存）
   if (isSafari) {
-    const dataURL = saveCanvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = dataURL;
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    alert("Safariでは自動ダウンロードができないため、新しいタブで画像を開きました。画像を長押しして保存してください。");
+    saveCanvas.toBlob((blob) => {
+      const blobURL = URL.createObjectURL(blob);
+      window.open(blobURL, "_blank");
+      alert("Safariでは長押しで保存できます。");
+    }, "image/png");
     return;
   }
 
-  // ▼ Chrome / Android / PC
+  // ▼ Chrome / Android / PC（通常のBlobダウンロード）
   saveCanvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
