@@ -286,7 +286,7 @@ function redraw() {
 }
 
 // ================================
-// ▼ High-resolution save (Safari対応版)
+// ▼ High-resolution save (Safari空タブ先開き方式)
 // ================================
 function saveHighRes() {
   if (!baseImage) {
@@ -324,13 +324,17 @@ function saveHighRes() {
   const ua = navigator.userAgent;
   const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
 
-  // ▼ Safari専用処理（Blob URL → 新規タブ → 長押し保存）
+  // ▼ Safari専用処理（空タブ → BlobURLに差し替え）
   if (isSafari) {
+    const newTab = window.open("about:blank", "_blank");
+
     saveCanvas.toBlob((blob) => {
       const blobURL = URL.createObjectURL(blob);
-      window.open(blobURL, "_blank");
+      newTab.location.href = blobURL;
+
       alert("新しいタブで画像を開きました。Safariでは長押しで保存できます。");
     }, "image/png");
+
     return;
   }
 
