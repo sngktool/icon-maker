@@ -260,3 +260,61 @@ canvas {
     min-width: 110px;
   }
 }
+/* ================================
+   LINE Browser Guide
+================================ */
+.line-guide {
+  margin: 1em 0;
+  padding: 14px;
+  text-align: left;
+
+  background: rgba(120,160,220,0.10);
+  border: 1px solid rgba(120,160,220,0.25);
+  border-radius: 14px;
+
+  box-shadow:
+    0 2px 8px rgba(90,125,168,0.08);
+
+  backdrop-filter: blur(8px);
+}
+
+.line-guide-title {
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #4a5f85;
+}
+
+.line-guide-text {
+  margin-top: 6px;
+  font-size: 0.88em;
+  color: #555;
+}
+
+.line-guide-details {
+  margin-top: 10px;
+}
+
+.line-guide-details summary {
+  cursor: pointer;
+  color: #5a7da8;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.guide-block {
+  margin-top: 14px;
+}
+
+.guide-block h4 {
+  margin: 0 0 8px;
+  font-size: 0.9em;
+  color: #4a5f85;
+}
+
+.guide-block img {
+  width: 100%;
+  border-radius: 10px;
+  display: block;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.08);
+}
